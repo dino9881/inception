@@ -1,0 +1,73 @@
+version: '3'
+
+volumes:
+  db_data:
+    name: db_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./requirements/mariadb/data
+  wordpress_data:
+    name: wordpress_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./requirements/wordpress/data
+services:
+  mariadb:
+    container_name: mariadb
+    env_file:
+    - .env
+    volumes:
+      - db_data:/var/lib/mysql
+    build: ./requirements/mariadb
+    restart: always
+    expose:
+      - "3306"
+    tty: true # tty?
+    networks:
+      default_bridge:
+        ipv4_address: 172.26.0.10
+
+  wordpress:
+    container_name: wordpress
+    depends_on:
+      - mariadb
+    env_file:
+    - .env
+    build: ./requirements/wordpress
+    expose: 
+            - "9000"
+    volumes:
+      - wordpress_data:/var/www/html
+    restart: always
+    tty: true # tty?
+    networks:
+      default_bridge:
+        ipv4_address: 172.26.0.11
+   
+  nginx:
+    container_name: nginx
+    depends_on:
+      - wordpress
+    env_file:
+      - .env
+    build: ./requirements/nginx
+    restart: always
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress_data:/var/www/html
+    tty: true
+    networks:
+      default_bridge:
+        ipv4_address: 172.26.0.12
+networks:
+  default_bridge:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.26.0.0/16
+ 
